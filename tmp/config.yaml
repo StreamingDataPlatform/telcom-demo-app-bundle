@@ -1,0 +1,439 @@
+apiVersion: v1
+data:
+  alerting_rules.yml: |
+    {}
+  alerts: |
+    groups:
+    - name: disksHealth.rules
+      rules:
+      - alert: diskHealth
+        annotations:
+          message: disk {{ $labels.disk }} on {{ $labels.kubernetes_node }} is not healthy
+        expr: sum( smartmon_device_info{device_model!="DELLBOSS VD"}) by (disk, kubernetes_node)
+          and sum(smartmon_device_smart_healthy) by (disk, kubernetes_node)  < 1
+        for: 1m
+        labels:
+          appName: cluster-monitoring
+          component: disk health
+          namespace: cluster-monitoring
+          reason: UnhealthyDisk
+          severity: critical
+          symptomid: KCLUSTER-0001
+          type: Critical
+    - name: nodesResources.rules
+      rules:
+      - alert: memoryUsage
+        annotations:
+          message: Cluster has high Memory usage of {{ $value | printf "%.2f" }}% for more
+            than 5 minutes.
+        expr: 100 * sum(container_memory_working_set_bytes{id="/"}) / sum(machine_memory_bytes)  >
+          85
+        for: 5m
+        labels:
+          appName: cluster-monitoring
+          component: Memory
+          namespace: cluster-monitoring
+          reason: LowResources
+          severity: critical
+          symptomid: KCLUSTER-0003
+          type: Critical
+      - alert: CPUUsage
+        annotations:
+          message: Cluster has high CPU usage of {{ $value | printf "%.2f" }}% for more
+            than 5 minutes.
+        expr: 100 * sum (rate (container_cpu_usage_seconds_total{id="/"}[1m])) / sum (machine_cpu_cores)
+          > 85
+        for: 5m
+        labels:
+          appName: cluster-monitoring
+          component: CPU
+          namespace: cluster-monitoring
+          reason: LowResources
+          severity: critical
+          symptomid: KCLUSTER-0001
+          type: Critical
+      - alert: FileSystemUsage
+        annotations:
+          message: Cluster has high Filesystem usage of {{ $value | printf "%.2f" }}% for
+            more than 5 minutes.
+        expr: 100 * sum(container_fs_usage_bytes{device=~"^/dev/[sv]d[a-z][1-9]$",id="/"})
+          / sum (container_fs_limit_bytes{device=~"^/dev/[sv]d[a-z][1-9]$",id="/"}) > 85
+        for: 5m
+        labels:
+          appName: cluster-monitoring
+          component: FileSystem
+          namespace: cluster-monitoring
+          reason: LowResources
+          severity: critical
+          symptomid: KCLUSTER-0004
+          type: Critical
+    - name: pods.rules
+      rules:
+      - alert: PodStuck
+        annotations:
+          message: Pod {{ $labels.pod }} in {{ $labels.namespace }} namespace is stuck with
+            {{ $labels.reason }} for more than 3 minutes.
+        expr: sum(kube_pod_container_status_waiting_reason{reason!="ContainerCreating"})
+          by (pod, reason) > 0
+        for: 3m
+        labels:
+          appName: cluster-monitoring
+          component: Pod
+          namespace: cluster-monitoring
+          reason: Pod in waiting
+          severity: critical
+          symptomid: KCLUSTER-0008
+          type: Critical
+    - name: replicas.rules
+      rules:
+      - alert: DameonSet
+        annotations:
+          message: daemonset {{ $labels.daemonset }}  has missing replicas {{$value}}
+        expr: sum(kube_daemonset_status_number_ready{daemonset=~".*"}) by(daemonset) - sum(kube_daemonset_status_desired_number_scheduled{daemonset=~".*"})
+          by(daemonset)  > 0
+        for: 1m
+        labels:
+          appName: cluster-monitoring
+          component: DameonSet
+          namespace: cluster-monitoring
+          reason: missing replicas
+          severity: critical
+          symptomid: KCLUSTER-0007
+          type: Critical
+      - alert: StatefulSet
+        annotations:
+          message: StatefulSet {{ $labels.statefulset }}  has missing replicas {{$value}}
+        expr: sum(kube_statefulset_replicas{statefulset=~".*"}) by (statefulset) - sum(kube_statefulset_status_replicas_ready{statefulset=~".*"})
+          by (statefulset)  > 0
+        for: 1m
+        labels:
+          appName: cluster-monitoring
+          component: StatefulSet
+          namespace: cluster-monitoring
+          reason: missing replicas
+          severity: critical
+          symptomid: KCLUSTER-0006
+          type: Critical
+      - alert: Deployment
+        annotations:
+          message: deployment {{ $labels.deployment }}  has missing replicas {{$value}}
+        expr: sum(kube_deployment_status_replicas{deployment=~".*"}) by(deployment) - sum(kube_deployment_status_replicas_available{deployment=~".*"})
+          by(deployment)  > 0
+        for: 1m
+        labels:
+          appName: cluster-monitoring
+          component: deployment
+          namespace: cluster-monitoring
+          reason: missing replicas
+          severity: critical
+          symptomid: KCLUSTER-0005
+          type: Critical
+  prometheus.yml: |
+    global:
+      evaluation_interval: 20s
+      scrape_interval: 20s
+      scrape_timeout: 10s
+    rule_files:
+    - /etc/config/recording_rules.yml
+    - /etc/config/alerting_rules.yml
+    - /etc/config/rules
+    - /etc/config/alerts
+    scrape_configs:
+    - job_name: prometheus
+      static_configs:
+      - targets:
+        - localhost:9090
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-apiservers
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: default;kubernetes;https
+        source_labels:
+        - __meta_kubernetes_namespace
+        - __meta_kubernetes_service_name
+        - __meta_kubernetes_endpoint_port_name
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-nodes
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/$1/proxy/metrics
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      job_name: kubernetes-nodes-cadvisor
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - replacement: kubernetes.default.svc:443
+        target_label: __address__
+      - regex: (.+)
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+        source_labels:
+        - __meta_kubernetes_node_name
+        target_label: __metrics_path__
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: true
+    - job_name: kubernetes-service-endpoints
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scrape
+      - action: replace
+        regex: (https?)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scheme
+        target_label: __scheme__
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_service_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: kubernetes_node
+    - job_name: kubernetes-service-endpoints-slow
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scrape_slow
+      - action: replace
+        regex: (https?)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_scheme
+        target_label: __scheme__
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_service_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: kubernetes_node
+      scrape_interval: 5m
+      scrape_timeout: 30s
+    - honor_labels: true
+      job_name: prometheus-pushgateway
+      kubernetes_sd_configs:
+      - role: service
+      relabel_configs:
+      - action: keep
+        regex: pushgateway
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_probe
+    - job_name: kubernetes-services
+      kubernetes_sd_configs:
+      - role: service
+      metrics_path: /probe
+      params:
+        module:
+        - http_2xx
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_service_annotation_prometheus_io_probe
+      - source_labels:
+        - __address__
+        target_label: __param_target
+      - replacement: blackbox
+        target_label: __address__
+      - source_labels:
+        - __param_target
+        target_label: instance
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - source_labels:
+        - __meta_kubernetes_service_name
+        target_label: kubernetes_name
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: kubernetes_pod_name
+      - action: drop
+        regex: Pending|Succeeded|Failed
+        source_labels:
+        - __meta_kubernetes_pod_phase
+    - job_name: kubernetes-pods-slow
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - action: keep
+        regex: true
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_scrape_slow
+      - action: replace
+        regex: (.+)
+        source_labels:
+        - __meta_kubernetes_pod_annotation_prometheus_io_path
+        target_label: __metrics_path__
+      - action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        source_labels:
+        - __address__
+        - __meta_kubernetes_pod_annotation_prometheus_io_port
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: kubernetes_namespace
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: kubernetes_pod_name
+      - action: drop
+        regex: Pending|Succeeded|Failed
+        source_labels:
+        - __meta_kubernetes_pod_phase
+      scrape_interval: 5m
+      scrape_timeout: 30s
+    alerting:
+      alertmanagers:
+      - kubernetes_sd_configs:
+        - role: pod
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels:
+          - __meta_kubernetes_namespace
+          regex: cluster-monitoring
+          action: keep
+        - source_labels:
+          - __meta_kubernetes_pod_label_app
+          regex: cluster-monitoring
+          action: keep
+        - source_labels:
+          - __meta_kubernetes_pod_label_component
+          regex: alertmanager
+          action: keep
+        - source_labels:
+          - __meta_kubernetes_pod_annotation_prometheus_io_probe
+          regex: .*
+          action: keep
+        - source_labels:
+          - __meta_kubernetes_pod_container_port_number
+          regex: null
+          action: drop
+    remote_write:
+    - url: http://10.243.52.237:8080/receive
+      queue_config:
+        max_shards: 3
+        max_samples_per_send: 100
+  recording_rules.yml: |
+    {}
+  rules: |
+    {}
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"alerting_rules.yml":"{}\n","alerts":"groups:\n- name: disksHealth.rules\n  rules:\n  - alert: diskHealth\n    annotations:\n      message: disk {{ $labels.disk }} on {{ $labels.kubernetes_node }} is not healthy\n    expr: sum( smartmon_device_info{device_model!=\"DELLBOSS VD\"}) by (disk, kubernetes_node)\n      and sum(smartmon_device_smart_healthy) by (disk, kubernetes_node)  \u003c 1\n    for: 1m\n    labels:\n      appName: cluster-monitoring\n      component: disk health\n      namespace: cluster-monitoring\n      reason: UnhealthyDisk\n      severity: critical\n      symptomid: KCLUSTER-0001\n      type: Critical\n- name: nodesResources.rules\n  rules:\n  - alert: memoryUsage\n    annotations:\n      message: Cluster has high Memory usage of {{ $value | printf \"%.2f\" }}% for more\n        than 5 minutes.\n    expr: 100 * sum(container_memory_working_set_bytes{id=\"/\"}) / sum(machine_memory_bytes)  \u003e\n      85\n    for: 5m\n    labels:\n      appName: cluster-monitoring\n      component: Memory\n      namespace: cluster-monitoring\n      reason: LowResources\n      severity: critical\n      symptomid: KCLUSTER-0003\n      type: Critical\n  - alert: CPUUsage\n    annotations:\n      message: Cluster has high CPU usage of {{ $value | printf \"%.2f\" }}% for more\n        than 5 minutes.\n    expr: 100 * sum (rate (container_cpu_usage_seconds_total{id=\"/\"}[1m])) / sum (machine_cpu_cores)\n      \u003e 85\n    for: 5m\n    labels:\n      appName: cluster-monitoring\n      component: CPU\n      namespace: cluster-monitoring\n      reason: LowResources\n      severity: critical\n      symptomid: KCLUSTER-0001\n      type: Critical\n  - alert: FileSystemUsage\n    annotations:\n      message: Cluster has high Filesystem usage of {{ $value | printf \"%.2f\" }}% for\n        more than 5 minutes.\n    expr: 100 * sum(container_fs_usage_bytes{device=~\"^/dev/[sv]d[a-z][1-9]$\",id=\"/\"})\n      / sum (container_fs_limit_bytes{device=~\"^/dev/[sv]d[a-z][1-9]$\",id=\"/\"}) \u003e 85\n    for: 5m\n    labels:\n      appName: cluster-monitoring\n      component: FileSystem\n      namespace: cluster-monitoring\n      reason: LowResources\n      severity: critical\n      symptomid: KCLUSTER-0004\n      type: Critical\n- name: pods.rules\n  rules:\n  - alert: PodStuck\n    annotations:\n      message: Pod {{ $labels.pod }} in {{ $labels.namespace }} namespace is stuck with\n        {{ $labels.reason }} for more than 3 minutes.\n    expr: sum(kube_pod_container_status_waiting_reason{reason!=\"ContainerCreating\"})\n      by (pod, reason) \u003e 0\n    for: 3m\n    labels:\n      appName: cluster-monitoring\n      component: Pod\n      namespace: cluster-monitoring\n      reason: Pod in waiting\n      severity: critical\n      symptomid: KCLUSTER-0008\n      type: Critical\n- name: replicas.rules\n  rules:\n  - alert: DameonSet\n    annotations:\n      message: daemonset {{ $labels.daemonset }}  has missing replicas {{$value}}\n    expr: sum(kube_daemonset_status_number_ready{daemonset=~\".*\"}) by(daemonset) - sum(kube_daemonset_status_desired_number_scheduled{daemonset=~\".*\"})\n      by(daemonset)  \u003e 0\n    for: 1m\n    labels:\n      appName: cluster-monitoring\n      component: DameonSet\n      namespace: cluster-monitoring\n      reason: missing replicas\n      severity: critical\n      symptomid: KCLUSTER-0007\n      type: Critical\n  - alert: StatefulSet\n    annotations:\n      message: StatefulSet {{ $labels.statefulset }}  has missing replicas {{$value}}\n    expr: sum(kube_statefulset_replicas{statefulset=~\".*\"}) by (statefulset) - sum(kube_statefulset_status_replicas_ready{statefulset=~\".*\"})\n      by (statefulset)  \u003e 0\n    for: 1m\n    labels:\n      appName: cluster-monitoring\n      component: StatefulSet\n      namespace: cluster-monitoring\n      reason: missing replicas\n      severity: critical\n      symptomid: KCLUSTER-0006\n      type: Critical\n  - alert: Deployment\n    annotations:\n      message: deployment {{ $labels.deployment }}  has missing replicas {{$value}}\n    expr: sum(kube_deployment_status_replicas{deployment=~\".*\"}) by(deployment) - sum(kube_deployment_status_replicas_available{deployment=~\".*\"})\n      by(deployment)  \u003e 0\n    for: 1m\n    labels:\n      appName: cluster-monitoring\n      component: deployment\n      namespace: cluster-monitoring\n      reason: missing replicas\n      severity: critical\n      symptomid: KCLUSTER-0005\n      type: Critical\n","prometheus.yml":"global:\n  evaluation_interval: 20s\n  scrape_interval: 20s\n  scrape_timeout: 10s\nrule_files:\n- /etc/config/recording_rules.yml\n- /etc/config/alerting_rules.yml\n- /etc/config/rules\n- /etc/config/alerts\nscrape_configs:\n- job_name: prometheus\n  static_configs:\n  - targets:\n    - localhost:9090\n- bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n  job_name: kubernetes-apiservers\n  kubernetes_sd_configs:\n  - role: endpoints\n  relabel_configs:\n  - action: keep\n    regex: default;kubernetes;https\n    source_labels:\n    - __meta_kubernetes_namespace\n    - __meta_kubernetes_service_name\n    - __meta_kubernetes_endpoint_port_name\n  scheme: https\n  tls_config:\n    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    insecure_skip_verify: true\n- bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n  job_name: kubernetes-nodes\n  kubernetes_sd_configs:\n  - role: node\n  relabel_configs:\n  - action: labelmap\n    regex: __meta_kubernetes_node_label_(.+)\n  - replacement: kubernetes.default.svc:443\n    target_label: __address__\n  - regex: (.+)\n    replacement: /api/v1/nodes/$1/proxy/metrics\n    source_labels:\n    - __meta_kubernetes_node_name\n    target_label: __metrics_path__\n  scheme: https\n  tls_config:\n    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    insecure_skip_verify: true\n- bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n  job_name: kubernetes-nodes-cadvisor\n  kubernetes_sd_configs:\n  - role: node\n  relabel_configs:\n  - action: labelmap\n    regex: __meta_kubernetes_node_label_(.+)\n  - replacement: kubernetes.default.svc:443\n    target_label: __address__\n  - regex: (.+)\n    replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor\n    source_labels:\n    - __meta_kubernetes_node_name\n    target_label: __metrics_path__\n  scheme: https\n  tls_config:\n    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    insecure_skip_verify: true\n- job_name: kubernetes-service-endpoints\n  kubernetes_sd_configs:\n  - role: endpoints\n  relabel_configs:\n  - action: keep\n    regex: true\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_scrape\n  - action: replace\n    regex: (https?)\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_scheme\n    target_label: __scheme__\n  - action: replace\n    regex: (.+)\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_path\n    target_label: __metrics_path__\n  - action: replace\n    regex: ([^:]+)(?::\\d+)?;(\\d+)\n    replacement: $1:$2\n    source_labels:\n    - __address__\n    - __meta_kubernetes_service_annotation_prometheus_io_port\n    target_label: __address__\n  - action: labelmap\n    regex: __meta_kubernetes_service_label_(.+)\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_namespace\n    target_label: kubernetes_namespace\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_service_name\n    target_label: kubernetes_name\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_pod_node_name\n    target_label: kubernetes_node\n- job_name: kubernetes-service-endpoints-slow\n  kubernetes_sd_configs:\n  - role: endpoints\n  relabel_configs:\n  - action: keep\n    regex: true\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_scrape_slow\n  - action: replace\n    regex: (https?)\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_scheme\n    target_label: __scheme__\n  - action: replace\n    regex: (.+)\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_path\n    target_label: __metrics_path__\n  - action: replace\n    regex: ([^:]+)(?::\\d+)?;(\\d+)\n    replacement: $1:$2\n    source_labels:\n    - __address__\n    - __meta_kubernetes_service_annotation_prometheus_io_port\n    target_label: __address__\n  - action: labelmap\n    regex: __meta_kubernetes_service_label_(.+)\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_namespace\n    target_label: kubernetes_namespace\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_service_name\n    target_label: kubernetes_name\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_pod_node_name\n    target_label: kubernetes_node\n  scrape_interval: 5m\n  scrape_timeout: 30s\n- honor_labels: true\n  job_name: prometheus-pushgateway\n  kubernetes_sd_configs:\n  - role: service\n  relabel_configs:\n  - action: keep\n    regex: pushgateway\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_probe\n- job_name: kubernetes-services\n  kubernetes_sd_configs:\n  - role: service\n  metrics_path: /probe\n  params:\n    module:\n    - http_2xx\n  relabel_configs:\n  - action: keep\n    regex: true\n    source_labels:\n    - __meta_kubernetes_service_annotation_prometheus_io_probe\n  - source_labels:\n    - __address__\n    target_label: __param_target\n  - replacement: blackbox\n    target_label: __address__\n  - source_labels:\n    - __param_target\n    target_label: instance\n  - action: labelmap\n    regex: __meta_kubernetes_service_label_(.+)\n  - source_labels:\n    - __meta_kubernetes_namespace\n    target_label: kubernetes_namespace\n  - source_labels:\n    - __meta_kubernetes_service_name\n    target_label: kubernetes_name\n- job_name: kubernetes-pods\n  kubernetes_sd_configs:\n  - role: pod\n  relabel_configs:\n  - action: keep\n    regex: true\n    source_labels:\n    - __meta_kubernetes_pod_annotation_prometheus_io_scrape\n  - action: replace\n    regex: (.+)\n    source_labels:\n    - __meta_kubernetes_pod_annotation_prometheus_io_path\n    target_label: __metrics_path__\n  - action: replace\n    regex: ([^:]+)(?::\\d+)?;(\\d+)\n    replacement: $1:$2\n    source_labels:\n    - __address__\n    - __meta_kubernetes_pod_annotation_prometheus_io_port\n    target_label: __address__\n  - action: labelmap\n    regex: __meta_kubernetes_pod_label_(.+)\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_namespace\n    target_label: kubernetes_namespace\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_pod_name\n    target_label: kubernetes_pod_name\n  - action: drop\n    regex: Pending|Succeeded|Failed\n    source_labels:\n    - __meta_kubernetes_pod_phase\n- job_name: kubernetes-pods-slow\n  kubernetes_sd_configs:\n  - role: pod\n  relabel_configs:\n  - action: keep\n    regex: true\n    source_labels:\n    - __meta_kubernetes_pod_annotation_prometheus_io_scrape_slow\n  - action: replace\n    regex: (.+)\n    source_labels:\n    - __meta_kubernetes_pod_annotation_prometheus_io_path\n    target_label: __metrics_path__\n  - action: replace\n    regex: ([^:]+)(?::\\d+)?;(\\d+)\n    replacement: $1:$2\n    source_labels:\n    - __address__\n    - __meta_kubernetes_pod_annotation_prometheus_io_port\n    target_label: __address__\n  - action: labelmap\n    regex: __meta_kubernetes_pod_label_(.+)\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_namespace\n    target_label: kubernetes_namespace\n  - action: replace\n    source_labels:\n    - __meta_kubernetes_pod_name\n    target_label: kubernetes_pod_name\n  - action: drop\n    regex: Pending|Succeeded|Failed\n    source_labels:\n    - __meta_kubernetes_pod_phase\n  scrape_interval: 5m\n  scrape_timeout: 30s\nalerting:\n  alertmanagers:\n  - kubernetes_sd_configs:\n    - role: pod\n    tls_config:\n      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n    relabel_configs:\n    - source_labels:\n      - __meta_kubernetes_namespace\n      regex: cluster-monitoring\n      action: keep\n    - source_labels:\n      - __meta_kubernetes_pod_label_app\n      regex: cluster-monitoring\n      action: keep\n    - source_labels:\n      - __meta_kubernetes_pod_label_component\n      regex: alertmanager\n      action: keep\n    - source_labels:\n      - __meta_kubernetes_pod_annotation_prometheus_io_probe\n      regex: .*\n      action: keep\n    - source_labels:\n      - __meta_kubernetes_pod_container_port_number\n      regex: null\n      action: drop\nremote_write:\n- url: http://10.243.53.130:8080/receive\n  queue_config:\n    max_shards: 3\n    max_samples_per_send: 100\n","recording_rules.yml":"{}\n","rules":"{}\n"},"kind":"ConfigMap","metadata":{"annotations":{"meta.helm.sh/release-name":"cluster-monitoring","meta.helm.sh/release-namespace":"cluster-monitoring"},"creationTimestamp":"2023-04-02T18:48:27Z","labels":{"app":"cluster-monitoring","app.kubernetes.io/managed-by":"Helm","chart":"cluster-monitoring-0.0-28-b3fa738","component":"server","heritage":"Helm","release":"cluster-monitoring"},"name":"prometheus-server","namespace":"cluster-monitoring","resourceVersion":"49169212","uid":"76bc911a-ac6c-476a-aa2b-f1c33c15ad6f"}}
+    meta.helm.sh/release-name: cluster-monitoring
+    meta.helm.sh/release-namespace: cluster-monitoring
+  creationTimestamp: '2023-04-02T18:48:27Z'
+  labels:
+    app: cluster-monitoring
+    app.kubernetes.io/managed-by: Helm
+    chart: cluster-monitoring-0.0-28-b3fa738
+    component: server
+    heritage: Helm
+    release: cluster-monitoring
+  name: prometheus-server
+  namespace: cluster-monitoring
+  resourceVersion: '49180659'
+  uid: 76bc911a-ac6c-476a-aa2b-f1c33c15ad6f

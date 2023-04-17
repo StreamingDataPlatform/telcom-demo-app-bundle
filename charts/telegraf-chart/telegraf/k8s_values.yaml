@@ -1,0 +1,91 @@
+replicaCount: 1
+image:
+  repo: telegraf
+  tag: 1.25-alpine
+  pullPolicy: IfNotPresent
+podAnnotations: {}
+podLabels: {}
+imagePullSecrets: []
+args: []
+env:
+- name: HOSTNAME
+  value: telegraf-polling-service
+resources: {}
+nodeSelector: {}
+affinity: {}
+tolerations: []
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations: {}
+rbac:
+  create: true
+  clusterWide: false
+  rules: []
+serviceAccount:
+  create: true
+  name: null
+  annotations: {}
+config:
+  agent:
+    interval: 80s
+    round_interval: true
+    metric_batch_size: 1000
+    metric_buffer_limit: 10000
+    collection_jitter: 0s
+    flush_interval: 10s
+    flush_jitter: 0s
+    precision: ''
+    debug: false
+    quiet: false
+    logfile: ''
+    hostname: $HOSTNAME
+    omit_hostname: false
+  processors:
+  - enum:
+      mapping:
+        field: status
+        dest: status_code
+        value_mappings:
+          healthy: 1
+          problem: 2
+          critical: 3
+  outputs:
+  - influxdb:
+      url: http://project-metrics.newproject.svc.cluster.local:8086
+      database: examples
+      username: fBgEvVDSgD
+      password: P0IkcBQDHn
+  - http:
+      url: http://ingest-gateway.newproject.svc.cluster.local/v1/scope/newproject/stream/k8s/event?routingKeyType=none&addTimestamp=Timestamp
+      timeout: 5s
+      method: POST
+      data_format: json
+      headers:
+        Content-Type: application/json; charset=utf-8
+        X-Pravega-Client-ID: default
+        X-Pravega-Secret: kiyYyf6G0lCdUWOO8W7Xsi4svLzxFJQw
+  inputs:
+  - http_listener_v2:
+      service_address: :8080
+      paths:
+      - /receive
+      data_format: prometheusremotewrite
+metrics:
+  health:
+    enabled: false
+    service_address: http://:8880
+    threshold: 5000.0
+    namepass: internal_write
+    tagpass: '{ output = ["http"] }'
+    compares:
+      field: buffer_size
+      lt: 5000.0
+    contains:
+      field: buffer_size
+  internal:
+    enabled: true
+    collect_memstats: false
+pdb:
+  create: true
+  minAvailable: 1

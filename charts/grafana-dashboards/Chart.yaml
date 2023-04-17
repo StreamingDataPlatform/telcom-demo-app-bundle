@@ -1,0 +1,5 @@
+apiVersion: v2
+appVersion: 0.0.1
+description: Grafana Dashboards - map-metrics
+name: grafana-dashboards-map-metrics
+version: 0.0.1

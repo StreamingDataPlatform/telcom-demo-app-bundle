@@ -1,0 +1,15 @@
+apiVersion: v1
+data:
+  datasources.yaml: '{"apiVersion": 1, "datasources": [{"access": "proxy", "database":
+    "examples", "jsonData": {"timeInterval": "10s"}, "name": "examples", "user": "fBgEvVDSgD",
+    "secureJsonData": {"password": "P0IkcBQDHn"}, "type": "influxdb", "url": "http://project-metrics:8086"}]}'
+kind: ConfigMap
+metadata:
+  name: project-metrics-datasources
+  namespace: newproject
+  ownerReferences:
+  - apiVersion: metrics.dellemc.com/v1alpha1
+    controller: false
+    kind: Grafana
+    name: project-metrics
+    uid: c444161f-2e9d-4dc0-86fb-e515a8fa8a2b

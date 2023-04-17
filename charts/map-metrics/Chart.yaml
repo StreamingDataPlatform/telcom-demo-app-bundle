@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: 0.0.2
+description: sink SDP stream to InfluxDB
+icon: http://local-helm-repo.kubeapps.svc.cluster.local/images/influxdb.png
+name: SDP-to-InfluxDB
+version: 0.0.2

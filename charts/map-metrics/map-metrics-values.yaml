@@ -1,0 +1,47 @@
+installCluster: true
+appParameters:
+  enableOperatorChaining: 'false'
+  vsphere-stream: vsphere
+  idrac-stream: idrac
+  k8s-stream: k8s
+  output-stream: mappedMetrics
+  input-startAtTail: 'false'
+  input-endAtTail: 'false'
+  input-minNumSegments: 1
+  ideal-perf-rate: 1
+  nodeName: 2781090f-16ef-4318-8acc-f99d319caf3f
+mainClass: io.pravega.flinkprocessor.MapMetrics
+jobName: MapMetrics
+mavenCoordinate:
+  artifact: flinkprocessor
+  group: io.pravega
+  version: 0.0.4
+flinkVersion: 1.15.2
+imageRef:
+  name: flink-1.15.2
+localStorage:
+  replicas: 2
+  size: 20G
+  storageClassName: standard
+volumes: []
+parallelism: 4
+jobManager:
+  cpu: 500m
+  memory: 2048M
+  replicas: 1
+taskManager:
+  numberOfTaskSlots: 4
+  replicas: 2
+  resources:
+    requests:
+      memory: 8Gi
+      cpu: 1000m
+    limits:
+      memory: 8Gi
+      cpu: 1000m
+logging: {}
+influxdb:
+  influxDB_database: examples
+  influxDB_host: http://project-metrics:8086
+  influxDB_password: P0IkcBQDHn
+  influxDB_username: fBgEvVDSgD

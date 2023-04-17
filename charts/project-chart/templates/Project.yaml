@@ -1,0 +1,29 @@
+apiVersion: "nautilus.dellemc.com/v1alpha1"
+kind: "Project"
+metadata:
+  name: {{ .Values.global.projectName }}
+  namespace: {{ .Values.global.projectName }}
+spec:
+  features:
+  - name: pravegaingestgateway
+  - name: zookeeper
+  - name: metrics 
+  maven:
+    repositories: []
+    storage:
+      persistentVolumeClaim:
+        resources:
+          request:
+            storage: 20Gi
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: nfs
+      reclaimPolicy: ""
+  storage:
+    persistentVolumeClaim:
+      resources:
+          requests:
+            storage: 10Gi
+      accessModes: [ "ReadWriteMany"]
+      storageClassName: nfs
+    reclaimPolicy: Delete
+---

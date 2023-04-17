@@ -1,0 +1,41 @@
+installCluster: false
+appParameters:
+  enableOperatorChaining: 'false'
+  input-stream: mappedMetrics
+  input-startAtTail: 'true'
+  input-endAtTail: 'false'
+  input-minNumSegments: 1
+mainClass: io.pravega.flinkprocessor.PravegaToInfluxDB
+mavenCoordinate:
+  artifact: flinkprocessor
+  group: io.pravega
+  version: 0.0.4
+flinkVersion: 1.15.2
+imageRef:
+  name: flink-1.15.2
+localStorage:
+  replicas: 2
+  size: 20G
+  storageClassName: standard
+volumes: []
+parallelism: 4
+jobManager:
+  cpu: 500m
+  memory: 2048M
+  replicas: 1
+taskManager:
+  numberOfTaskSlots: 4
+  replicas: 2
+  resources:
+    requests:
+      memory: 8Gi
+      cpu: 1000m
+    limits:
+      memory: 8Gi
+      cpu: 1000m
+logging: {}
+influxdb:
+  influxDB_database: examples
+  influxDB_host: http://project-metrics:8086
+  influxDB_password: P0IkcBQDHn
+  influxDB_username: fBgEvVDSgD

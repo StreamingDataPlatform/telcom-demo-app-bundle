@@ -1,0 +1,37 @@
+# Copyright (c) Dell Inc., or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+apiVersion: flink.nautilus.dellemc.com/v1beta1
+kind: FlinkApplication
+metadata:
+  labels:
+    release: {{ $.Release.Name }}
+  name: {{ $.Release.Name }}
+spec:
+  clusterSelector:
+    name: map-metrics-cluster
+  flinkVersion: {{ .Values.flinkVersion }}
+  mainClass: {{ .Values.mainClass }}
+  mavenCoordinate: {{ .Values.mavenCoordinate.group }}:{{ .Values.mavenCoordinate.artifact }}:{{ .Values.mavenCoordinate.version }}
+  parallelism: {{ .Values.parallelism }}
+  parameters:
+    - name: influxDB_host
+      value: {{ .Values.influxdb.influxDB_host | quote }}
+    - name: influxDB_username
+      value: {{ .Values.influxdb.influxDB_username | quote }}
+    - name: influxDB_password
+      value: {{ .Values.influxdb.influxDB_password  | quote }}
+    - name: influxDB_database
+      value: {{ .Values.influxdb.influxDB_database  | quote }}
+    - name: jobName
+      value: {{ $.Release.Name | quote }}
+    {{- range $key, $value := .Values.appParameters }}
+    - name: {{ $key | quote }}
+      value: {{ $value | quote }}
+    {{- end }}
+  state: started

@@ -1,0 +1,9 @@
+# Helm chart automated files
+/charts/*/charts
+/charts/*/requirements.lock
+
+# Terraform
+/terraform/.terraform
+
+.github
+.editorconfig

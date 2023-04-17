@@ -1,0 +1,5 @@
+.git/
+.gitignore
+
+telcom-demo-copy/
+raw-json-stream-data/

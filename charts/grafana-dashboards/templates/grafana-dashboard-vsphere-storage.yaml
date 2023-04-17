@@ -1,0 +1,705 @@
+apiVersion: metrics.dellemc.com/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  labels:
+    metrics.dellemc.com/grafana: project-metrics
+  name: vsphere-storage
+  namespace: {{ .Values.namespace }}
+spec:
+  values:
+    datasource: {{ .Values.datasource }}
+  grafanaRef:
+    name: project-metrics
+  dashboard: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "[[ datasource ]]",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "[[ DashboardId ]]",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "description": "VMware vSphere Dashboard - Datastore (Grafana 7.5 / new Time-Series Panel)",
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "iteration": 1653900178881,
+      "links": [
+        {
+          "asDropdown": true,
+          "icon": "external link",
+          "includeVars": true,
+          "keepTime": true,
+          "tags": [
+            "vSphere Telegraf"
+          ],
+          "targetBlank": true,
+          "title": "More Dashboards",
+          "type": "dashboards"
+        }
+      ],
+      "panels": [
+        {
+          "datasource": "[[ datasource ]]",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {},
+              "decimals": 0,
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "dark-green",
+                    "value": null
+                  },
+                  {
+                    "color": "dark-yellow",
+                    "value": 65
+                  },
+                  {
+                    "color": "dark-orange",
+                    "value": 75
+                  },
+                  {
+                    "color": "dark-red",
+                    "value": 90
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          },
+          "hideTimeOverride": false,
+          "id": 123,
+          "interval": "1h",
+          "links": [],
+          "options": {
+            "displayMode": "lcd",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "text": {}
+          },
+          "pluginVersion": "7.4.5",
+          "targets": [
+            {
+              "alias": "$tag_source",
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "null"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT last(\"used_latest\") * (100 / last(\"capacity_latest\"))  FROM \"vsphere_datastore_disk\" WHERE (\"source\" =~ /^$datastore$/) AND $timeFilter GROUP BY time($__interval) , \"source\"  fill(none)",
+              "rawQuery": true,
+              "refId": "A",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "value"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": []
+            }
+          ],
+          "timeFrom": "3h",
+          "timeShift": null,
+          "title": "Datastores - Usage Capacity",
+          "type": "bargauge"
+        },
+        {
+          "datasource": "[[ datasource ]]",
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 12
+          },
+          "id": 55,
+          "panels": [],
+          "repeat": "datastore",
+          "scopedVars": {
+            "datastore": {
+              "selected": true,
+              "text": "VxRail-Virtual-SAN-Datastore",
+              "value": "VxRail-Virtual-SAN-Datastore"
+            }
+          },
+          "title": "$datastore",
+          "type": "row"
+        },
+        {
+          "cacheTimeout": null,
+          "datasource": "[[ datasource ]]",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "decimals": 2,
+              "mappings": [
+                {
+                  "id": 0,
+                  "op": "=",
+                  "text": "N/A",
+                  "type": 1,
+                  "value": "null"
+                }
+              ],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "dark-blue",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "deckbytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 9,
+            "x": 0,
+            "y": 13
+          },
+          "hideTimeOverride": true,
+          "id": 48,
+          "interval": "1h",
+          "links": [],
+          "maxDataPoints": 100,
+          "options": {
+            "colorMode": "background",
+            "fieldOptions": {
+              "calcs": [
+                "mean"
+              ]
+            },
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "7.4.5",
+          "scopedVars": {
+            "datastore": {
+              "selected": true,
+              "text": "VxRail-Virtual-SAN-Datastore",
+              "value": "VxRail-Virtual-SAN-Datastore"
+            }
+          },
+          "targets": [
+            {
+              "alias": "Total Capacity",
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "source"
+                  ],
+                  "type": "tag"
+                },
+                {
+                  "params": [
+                    "null"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "measurement": "vsphere_datastore_disk",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "refId": "A",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "capacity_latest"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "source",
+                  "operator": "=~",
+                  "value": "/^$datastore$/"
+                }
+              ]
+            },
+            {
+              "alias": "Free Capacity",
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "source"
+                  ],
+                  "type": "tag"
+                },
+                {
+                  "params": [
+                    "null"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "measurement": "vsphere_datastore_disk",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT mean(\"capacity_latest\") - mean(\"used_latest\") FROM \"vsphere_datastore_disk\" WHERE (\"source\" =~ /^$datastore$/) AND $timeFilter GROUP BY time($__interval), \"source\" fill(null)",
+              "rawQuery": true,
+              "refId": "B",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "capacity_latest"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "source",
+                  "operator": "=~",
+                  "value": "/^$datastore$/"
+                }
+              ]
+            }
+          ],
+          "timeFrom": "3h",
+          "title": "Total Capacity",
+          "type": "stat"
+        },
+        {
+          "cacheTimeout": null,
+          "datasource": "[[ datasource ]]",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "continuous-RdYlGr"
+              },
+              "custom": {},
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "deckbytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 15,
+            "x": 9,
+            "y": 13
+          },
+          "id": 51,
+          "interval": "1h",
+          "links": [],
+          "maxDataPoints": 3,
+          "options": {
+            "displayMode": "gradient",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": true,
+            "text": {}
+          },
+          "pluginVersion": "7.4.5",
+          "scopedVars": {
+            "datastore": {
+              "selected": true,
+              "text": "VxRail-Virtual-SAN-Datastore",
+              "value": "VxRail-Virtual-SAN-Datastore"
+            }
+          },
+          "targets": [
+            {
+              "alias": "Used Space",
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "source"
+                  ],
+                  "type": "tag"
+                },
+                {
+                  "params": [
+                    "null"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "measurement": "vsphere_datastore_disk",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "refId": "A",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "used_latest"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "last"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "source",
+                  "operator": "=~",
+                  "value": "/^$datastore$/"
+                }
+              ]
+            },
+            {
+              "alias": "Free Space",
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "source"
+                  ],
+                  "type": "tag"
+                },
+                {
+                  "params": [
+                    "null"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "measurement": "vsphere_datastore_disk",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT last(\"capacity_latest\") - last(\"used_latest\") FROM \"vsphere_datastore_disk\" WHERE (\"source\" =~ /^$datastore$/) AND $timeFilter GROUP BY time($__interval), \"source\" fill(null)",
+              "rawQuery": true,
+              "refId": "B",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "capacity_latest"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "source",
+                  "operator": "=~",
+                  "value": "/^$datastore$/"
+                }
+              ]
+            }
+          ],
+          "timeFrom": "3h",
+          "title": "Capacity Summary",
+          "type": "bargauge"
+        }
+      ],
+      "refresh": "5m",
+      "schemaVersion": 27,
+      "style": "dark",
+      "tags": [
+        "VMware",
+        "vSphere Datastore",
+        "vSphere Telegraf"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "vsphere",
+              "value": "vsphere"
+            },
+            "description": null,
+            "error": null,
+            "hide": 0,
+            "includeAll": false,
+            "label": null,
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "influxdb",
+            "queryValue": "",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "allValue": null,
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": "[[ datasource ]]",
+            "definition": "",
+            "description": null,
+            "error": null,
+            "hide": 0,
+            "includeAll": true,
+            "label": "vCenter Server",
+            "multi": true,
+            "name": "vcenter",
+            "options": [],
+            "query": "select DISTINCT(\"vcenter\") from (select \"usage_average\",\"vcenter\" from \"vsphere_host_cpu\" WHERE $timeFilter)",
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
+          },
+          {
+            "allValue": null,
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": "[[ datasource ]]",
+            "definition": "",
+            "description": null,
+            "error": null,
+            "hide": 0,
+            "includeAll": true,
+            "label": "Cluster",
+            "multi": true,
+            "name": "clustername",
+            "options": [],
+            "query": "select DISTINCT(\"clustername\") from (select \"usage_average\",\"clustername\" from \"vsphere_host_cpu\" WHERE $timeFilter AND \"vcenter\" =~ /$vcenter/)",
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
+          },
+          {
+            "allValue": null,
+            "current": {
+              "selected": true,
+              "text": [
+                "All"
+              ],
+              "value": [
+                "$__all"
+              ]
+            },
+            "datasource": "[[ datasource ]]",
+            "definition": "",
+            "description": null,
+            "error": null,
+            "hide": 0,
+            "includeAll": true,
+            "label": "ESXi Server",
+            "multi": true,
+            "name": "esxi",
+            "options": [],
+            "query": "select DISTINCT(\"esxhostname\") from (select \"usage_average\",\"esxhostname\" from \"vsphere_host_cpu\" WHERE $timeFilter AND \"vcenter\" =~ /$vcenter/)",
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
+          },
+          {
+            "allValue": null,
+            "current": {
+              "selected": true,
+              "text": [
+                "VxRail-Virtual-SAN-Datastore"
+              ],
+              "value": [
+                "VxRail-Virtual-SAN-Datastore"
+              ]
+            },
+            "datasource": "[[ datasource ]]",
+            "definition": "",
+            "description": null,
+            "error": null,
+            "hide": 0,
+            "includeAll": true,
+            "label": "Datastore",
+            "multi": true,
+            "name": "datastore",
+            "options": [],
+            "query": "select DISTINCT(\"dsname\") from (select \"used_latest\",\"dsname\" from \"vsphere_datastore_disk\" WHERE $timeFilter AND \"vcenter\" =~ /$vcenter/)",
+            "refresh": 2,
+            "regex": "/^(?!VeeamBackup_)/",
+            "skipUrlSync": false,
+            "sort": 0,
+            "tagValuesQuery": "",
+            "tags": [],
+            "tagsQuery": "",
+            "type": "query",
+            "useTags": false
+          }
+        ]
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {
+        "refresh_intervals": [
+          "10s",
+          "30s",
+          "1m",
+          "5m",
+          "15m",
+          "30m",
+          "1h",
+          "2h",
+          "1d"
+        ],
+        "time_options": [
+          "5m",
+          "15m",
+          "1h",
+          "6h",
+          "12h",
+          "24h",
+          "2d",
+          "7d",
+          "30d"
+        ]
+      },
+      "timezone": "browser",
+      "title": "VMware vSphere - Datastore",
+      "uid": "[[ DashboardId ]]",
+      "version": 1
+    }

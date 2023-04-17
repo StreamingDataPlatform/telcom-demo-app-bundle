@@ -1,0 +1,17 @@
+global:
+  projectName: newproject
+  openshift: false
+  project-feature:
+    ingestgateway:
+      keycloak:
+        roles:
+        - idrac
+        - vsphere
+        - k8s
+        clients:
+        - default
+        mapping:
+          default:
+          - idrac
+          - vsphere
+          - k8s

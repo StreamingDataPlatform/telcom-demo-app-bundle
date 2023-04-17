@@ -1,0 +1,45 @@
+name: "helm-charts/release"
+
+# I'm hoping that this means we only trigger a release
+# when the push is to the master branch and a Chart.yaml was
+# modified.
+#
+# We've found that automatically releasing on push to master alone
+# causes a lot of problems, especially as we forget to encourage contributors
+# to bump the version; even reminding them isn't a great experience.
+#
+# This should allow us to have a successful build without such a change
+# and then manually update the Chart version ourselves, without build
+# failures
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**/Chart.yaml"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Fetch history
+        run: git fetch --prune --unshallow
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.6.3
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.2.1
+        env:
+          CR_TOKEN: "${{ secrets.CR_TOKEN }}"
+          CR_SKIP_EXISTING: true
