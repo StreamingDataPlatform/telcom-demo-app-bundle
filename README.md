@@ -277,5 +277,6 @@ input<number>:
 - Line 29 in the install script is commented out when first installing. If you are running install script again uncomment line 29 #sudo keytool -delete -noprompt -alias sdp-repo  -keystore /etc/ssl/certs/java/cacerts -storepass changeit
 - If there is error with openssl importing java certs go to the file: **/etc/hosts** and delete the **repo-<projectName>.<clusterinfo>.sdp.hop.lab.emc.com** near the top of the file.
 - In the charts folder map-metrics-influxdb-sink-values.yaml and map-metrics-values.yaml have storageClassName set to standard. Change it to your storageClassName. To find out your default storageClassName run **kubectl get storageclass**
+- In the charts folder map-metrics-influxdb-sink-values.yaml and map-metrics-values.yaml make sure to have supported flink images. To find supported flink images go to the SDP UI and open the System tab and under the Runtimes tab, the supported flink versions will be available. 
 
 
