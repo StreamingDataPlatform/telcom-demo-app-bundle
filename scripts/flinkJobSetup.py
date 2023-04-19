@@ -24,6 +24,7 @@ with open(os.path.join(os.path.dirname(__file__), '../tmp', 'sample_temp.yaml'),
     document = yaml.safe_load(sample_file)
     projectName = document['global']['projectName']
     database = document['global']['streams'][0]['outputs'][0]['influxdb']['database']
+    storageClassName = document['global']['storageClassName']
 sample_file.close()
 
 def runFlinkJobsIfExisting():
@@ -42,6 +43,7 @@ def runFlinkJobsIfExisting():
         map_metrics_values_document['influxdb']['influxDB_username'] = INFLUXDBUN
         map_metrics_values_document['influxdb']['influxDB_password'] = INFLUXDBPW
         map_metrics_values_document['influxdb']['influxDB_database'] = database
+        map_metrics_values_document['localStorage']['storageClassName'] = storageClassName
         arg = "kubectl get nodes -o jsonpath='{.items[0].metadata.name}'"
         nodeName = subprocess.run(arg, capture_output=True,text=True,shell=True).stdout
         map_metrics_values_document['appParameters']['nodeName'] = nodeName 
@@ -57,6 +59,7 @@ def runFlinkJobsIfExisting():
         map_metrics__influxdb_sink_values_document['influxdb']['influxDB_username'] = INFLUXDBUN
         map_metrics__influxdb_sink_values_document['influxdb']['influxDB_password'] = INFLUXDBPW
         map_metrics__influxdb_sink_values_document['influxdb']['influxDB_database'] = database
+        map_metrics__influxdb_sink_values_document['localStorage']['storageClassName'] = storageClassName
     map_metrics_influxdb_sink_values_file.close()
 
     with open(os.path.join(os.path.dirname(__file__), '../charts/map-metrics', 'map-metrics-influxdb-sink-values.yaml'),'w+') as map_metrics_influxdb_sink_values_yaml:
