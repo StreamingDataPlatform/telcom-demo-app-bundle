@@ -16,9 +16,9 @@ mavenCoordinate:
   artifact: flinkprocessor
   group: io.pravega
   version: 0.0.4
-flinkVersion: 1.15.2
+flinkVersion: 1.15.4
 imageRef:
-  name: flink-1.15.2
+  name: flink-1.15.4
 localStorage:
   replicas: 2
   size: 20G
@@ -43,5 +43,5 @@ logging: {}
 influxdb:
   influxDB_database: examples
   influxDB_host: http://project-metrics:8086
-  influxDB_password: P0IkcBQDHn
-  influxDB_username: fBgEvVDSgD
+  influxDB_password: XnX2YfPRyc
+  influxDB_username: hYZ0MGraCA
