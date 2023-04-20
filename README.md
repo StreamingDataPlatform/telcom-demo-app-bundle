@@ -56,9 +56,9 @@ Inside the scripts folder, there are multiple scripts that are used in the `inst
 - The `env-local.sh` shell script is used to get the project name from the user `sample.yaml` file.
 - The `env.sh` shell script is used to set the APP name, group id, artifact id, version, and gradle options.
 - The `publish.sh` shell script is used to publish the maven artifact jar file to SDP using gradle.
-- The `flinkJobSetup.py` script is used to update map-metrics-chart and grafana-dashboard chart's influxDB details. It also runs the scripts `install_map_metrics_dashboards.sh` and `install_map_metrics_final.sh` which are provided in the `sample.yaml` file under flinkJobs.
+- The `flinkJobSetup.py` script is used to update map-metrics-chart and grafana-dashboard chart's influxDB details. It also runs the scripts `install_map_metrics_dashboards.sh` and `install_map_metrics.sh` which are provided in the `sample.yaml` file under flinkJobs.
 - The `install_map_metrics_dashboards.sh` shell script is used by helm to install grafana dashboards.
-- The `install_map_metrics_final.sh` shell script is used by helm to install the Flink jobs map metrics flink application and map metrics influxDB flink application.
+- The `install_map_metrics.sh` shell script is used by helm to install the Flink jobs map metrics flink application and map metrics influxDB flink application.
 - The `pravegaUninstall.sh` shell script is used by the `uninstall.sh` shell script to delete pravega streams using pravega's rest API's.
 
 ## Quick Start Guide
@@ -174,7 +174,7 @@ at [https://docs.influxdata.com/telegraf/v1.14/plugins/plugin-list/](https://doc
 *<p align="center">Figure 6: Input with stream name vsphere, Not pushing data to prometheus, and data source input is vsphere vcenter</p>*
 
 
-5. Flink Jobs: The user can add the Flink Jobs they want to run. The default Flink jobs are **install_map_metrics** and **install_map_metrics_dashboards**, which create Grafana dashboards shown in Figure 7. These Flink jobs are written in Java. To view them, go into the folder **flinkprocessor/src/main/java/io/pravega/flinkprocessor**. The input format is shown in Figure 9 below.
+5. Flink Jobs: The user can add the Flink Jobs they want to run. The default Flink jobs are **install_map_metrics** and **install_map_metrics_dashboards**, which create Grafana dashboards shown in Figure 7. These Flink jobs are written in Java. To view them, go into the folder **telcom-demo/flinkprocessor/src/main/java/io/pravega/flinkprocessor**. The input format is shown in Figure 9 below.
 
 ```
   flinkJobs:
@@ -264,19 +264,19 @@ input<number>:
 
 ### Uninstall Project
 
-- First find all streams created by Telegraf using the command: kubectl get pods -n <projectname>. An example of idrac, vsphere and k8s are shown below.
+- First find all streams created by Telegraf using the command: kubectl get pods -n "projectname". An example of idrac, vsphere and k8s are shown below.
 
 ![pravega example streams](https://user-images.githubusercontent.com/112410039/233170067-cf876061-2dcf-450b-9c6c-bc05cce9b5c7.png)
 
 
-- Stop each stream that has "telegraf" using the command: helm del <podname> -n <projectname>
-- Delete the Flink jobs/cluster, Pravega streams and project in that order from the SDP UI or create update the uninstall.sh shell script with the new streams and run it.
+- Stop each stream that has "telegraf" using the command: helm del "podname" -n "projectname"
+- Delete the Flink jobs/cluster, Pravega streams and project in that order from the SDP UI or  update the uninstall.sh shell script with the new streams and run it.
 
 ### Troubleshooting
 
 - Line 29 in the install script is commented out when first installing. If you are running install script again uncomment line 29 #sudo keytool -delete -noprompt -alias sdp-repo  -keystore /etc/ssl/certs/java/cacerts -storepass changeit
-- If there is error with openssl importing java certs go to the file: **/etc/hosts** and delete the **repo-<projectName>.<clusterinfo>.sdp.hop.lab.emc.com** near the top of the file.
+- If there is error with openssl importing java certs go to the file: **/etc/hosts** and delete the **repo-"projectName"."clusterinfo".sdp.hop.lab.emc.com** near the top of the file.
 - In the charts folder map-metrics-influxdb-sink-values.yaml and map-metrics-values.yaml have storageClassName set to standard. Change it to your storageClassName. To find out your default storageClassName run **kubectl get storageclass**
-- In the charts folder map-metrics-influxdb-sink-values.yaml and map-metrics-values.yaml make sure to have supported flink images. To find supported flink images go to the SDP UI and open the System tab and under the Runtimes tab, the supported flink versions will be available. 
+- In the charts folder in map-metrics-influxdb-sink-values.yaml and map-metrics-values.yaml make sure to have supported flink images. To find supported flink images go to the SDP UI and open the System tab and under the Runtimes tab, the supported flink versions will be available. 
 
 

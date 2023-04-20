@@ -52,19 +52,19 @@ config:
           critical: 3
   outputs:
   - influxdb:
-      url: http://project-metrics.newproject.svc.cluster.local:8086
+      url: http://project-metrics.examples.svc.cluster.local:8086
       database: examples
-      username: fBgEvVDSgD
-      password: P0IkcBQDHn
+      username: hYZ0MGraCA
+      password: XnX2YfPRyc
   - http:
-      url: http://ingest-gateway.newproject.svc.cluster.local/v1/scope/newproject/stream/idrac/event?routingKeyType=none&addTimestamp=Timestamp
+      url: http://ingest-gateway.examples.svc.cluster.local/v1/scope/examples/stream/idrac/event?routingKeyType=none&addTimestamp=Timestamp
       timeout: 5s
       method: POST
       data_format: json
       headers:
         Content-Type: application/json; charset=utf-8
         X-Pravega-Client-ID: default
-        X-Pravega-Secret: kiyYyf6G0lCdUWOO8W7Xsi4svLzxFJQw
+        X-Pravega-Secret: qjARed1aDscyp8OsfQ1XQ3cShtUftIAH
   inputs:
   - snmp:
       agents:

@@ -1,12 +1,12 @@
 apiVersion: v1
 data:
   datasources.yaml: '{"apiVersion": 1, "datasources": [{"access": "proxy", "database":
-    "examples", "jsonData": {"timeInterval": "10s"}, "name": "examples", "user": "fBgEvVDSgD",
-    "secureJsonData": {"password": "P0IkcBQDHn"}, "type": "influxdb", "url": "http://project-metrics:8086"}]}'
+    "examples", "jsonData": {"timeInterval": "10s"}, "name": "examples", "user": "hYZ0MGraCA",
+    "secureJsonData": {"password": "XnX2YfPRyc"}, "type": "influxdb", "url": "http://project-metrics:8086"}]}'
 kind: ConfigMap
 metadata:
   name: project-metrics-datasources
-  namespace: newproject
+  namespace: examples
   ownerReferences:
   - apiVersion: metrics.dellemc.com/v1alpha1
     controller: false

@@ -1,5 +1,5 @@
 global:
-  projectName: newproject
+  projectName: examples
   openshift: false
   project-feature:
     ingestgateway:
