@@ -80,9 +80,10 @@ while(subprocess.run(arg, capture_output=True,text=True,shell=True).stdout != "t
 
 
 arg = f'''kubectl get pods -l=release='zookeeper' -n {project_name}'''+''' -o jsonpath='{.items[*].status.containerStatuses[0].ready}' '''
-while(subprocess.run(arg, capture_output=True,text=True,shell=True).stdout != "true true true"):
+while("true" not in subprocess.run(arg, capture_output=True,text=True,shell=True).stdout):
     time.sleep(40)
     os.system("echo 'Waiting for Zookeeper to be ready...'")
+
 
 arg = f'''kubectl get secrets  -n {project_name}'''+''' -o json | jq -r '.items[] | select(.metadata.name | startswith("ingest-gateway-default")).metadata.name' | sed 's/ingest-gateway-//' '''
 K8SECRET= subprocess.run(arg, capture_output=True,text=True,shell=True).stdout.strip()
